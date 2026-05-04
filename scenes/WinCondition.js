@@ -23,20 +23,20 @@ export default class WinCondition extends Phaser.Scene {
         this.add.text(gameWidth / 2, gameHeight * 0.2, "* * * VICTORY * * *", {
             fontSize: "36px",
             fill: "#0f0",
-            fontFamily: "Arial",
+            fontFamily: "SpaceFont",
             fontStyle: "bold",
         }).setOrigin(0.5);
 
         this.add.text(gameWidth / 2, gameHeight * 0.35, this.message, {
             fontSize: "28px",
             fill: "#0f0",
-            fontFamily: "Arial",
+            fontFamily: "SpaceFont",
         }).setOrigin(0.5);
 
         this.add.text(gameWidth / 2, gameHeight * 0.5, `SCORE: ${this.score}`, {
             fontSize: "24px",
             fill: "#0f0",
-            fontFamily: "Arial",
+            fontFamily: "SpaceFont",
         }).setOrigin(0.5);
 
         this.add.text(
@@ -46,7 +46,7 @@ export default class WinCondition extends Phaser.Scene {
             {
                 fontSize: "20px",
                 fill: "#fff",
-                fontFamily: "Arial",
+                fontFamily: "SpaceFont",
             }
         ).setOrigin(0.5);
 
@@ -54,7 +54,7 @@ export default class WinCondition extends Phaser.Scene {
         this.add.text(gameWidth / 2, gameHeight * 0.75, "Press R to return to menu", {
             fontSize: "22px",
             fill: "#0f0",
-            fontFamily: "Arial",
+            fontFamily: "SpaceFont",
         }).setOrigin(0.5);
 
         

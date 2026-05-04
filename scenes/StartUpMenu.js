@@ -17,7 +17,7 @@ export default class StartUpMenu extends Phaser.Scene {
     this.add.text(gameWidth / 2, gameHeight * 0.15, "SPACE INVADERS", {
       fontSize: "52px",
       fill: "#0f0",
-      fontFamily: "Arial",
+      fontFamily: "SpaceFont",
       fontStyle: "bold",
       align: "center",
     }).setOrigin(0.5);
@@ -25,31 +25,31 @@ export default class StartUpMenu extends Phaser.Scene {
     this.add.text(gameWidth / 2, gameHeight * 0.3, "* * * * *", {
       fontSize: "32px",
       fill: "#0f0",
-      fontFamily: "Arial",
+      fontFamily: "SpaceFont",
     }).setOrigin(0.5);
 
     this.add.text(gameWidth / 2, gameHeight * 0.45, "Press SPACE to Start", {
       fontSize: "28px",
       fill: "#0f0",
-      fontFamily: "Arial",
+      fontFamily: "SpaceFont",
     }).setOrigin(0.5);
 
     this.add.text(gameWidth / 2, gameHeight * 0.58, "Or choose your difficulty:", {
       fontSize: "20px",
       fill: "#0f0",
-      fontFamily: "Arial",
+      fontFamily: "SpaceFont",
     }).setOrigin(0.5);
 
     this.add.text(gameWidth / 2, gameHeight * 0.66, "Press 1 for LEVEL 1 (Normal)", {
       fontSize: "18px",
       fill: "#fff",
-      fontFamily: "Arial",
+      fontFamily: "SpaceFont",
     }).setOrigin(0.5);
 
     this.add.text(gameWidth / 2, gameHeight * 0.74, "Press 2 for LEVEL 2 (Hard)", {
       fontSize: "18px",
       fill: "#fff",
-      fontFamily: "Arial",
+      fontFamily: "SpaceFont",
     }).setOrigin(0.5);
 
     this.input.keyboard.on("keydown-SPACE", () => {

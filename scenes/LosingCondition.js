@@ -21,20 +21,20 @@ export default class LosingCondition extends Phaser.Scene {
         this.add.text(gameWidth / 2, gameHeight * 0.2, "* * * GAME OVER * * *", {
             fontSize: "36px",
             fill: "#f00",
-            fontFamily: "Arial",
+            fontFamily: "SpaceFont",
             fontStyle: "bold",
         }).setOrigin(0.5);
 
         this.add.text(gameWidth / 2, gameHeight * 0.35, "The invaders have landed!", {
             fontSize: "24px",
             fill: "#0f0",
-            fontFamily: "Arial",
+            fontFamily: "SpaceFont",
         }).setOrigin(0.5);
 
         this.add.text(gameWidth / 2, gameHeight * 0.5, `FINAL SCORE: ${this.score}`, {
             fontSize: "24px",
             fill: "#0f0",
-            fontFamily: "Arial",
+            fontFamily: "SpaceFont",
         }).setOrigin(0.5);
 
         this.add.text(
@@ -44,14 +44,14 @@ export default class LosingCondition extends Phaser.Scene {
             {
                 fontSize: "20px",
                 fill: "#fff",
-                fontFamily: "Arial",
+                fontFamily: "SpaceFont",
             }
         ).setOrigin(0.5);
 
         this.add.text(gameWidth / 2, gameHeight * 0.75, "Press R to return to menu", {
             fontSize: "22px",
             fill: "#0f0",
-            fontFamily: "Arial",
+            fontFamily: "SpaceFont",
         }).setOrigin(0.5);
 
       
