@@ -7,22 +7,19 @@ export default class Level2 extends Phaser.Scene {
 
   init() {
     this.score = 0;
-    this.waveNumber = 1;
     this.enemiesDestroyed = 0;
     this.totalEnemiesToWin = 36; // Total enemies to destroy for this level
+    this.currentEnemySpeed = 15;
+    try {
+      const saved = localStorage.getItem("highScore");
+      this.highScore = parseInt(saved) || 0;
+    } catch (e) {
+      this.highScore = 0;
+    }
   }
 
   preload() {
-    this.load.image("octopus", "./public/assets/Octopus.png");
-    this.load.image("cover", "./public/assets/Cover.png");
-    this.load.image("player", "./public/assets/Player.png");
-    this.load.image("playerexplosion", "./public/assets/PlayerExplosion.png");
-    this.load.image("projectile", "./public/assets/Projectile_Player.png");
-    this.load.image("crab", "./public/assets/Crab.png"); // New enemy sprite
-    this.load.image("squid", "./public/assets/Squid.png"); // New enemy sprite
-    this.load.image("ufo", "./public/assets/UFO.png"); // UFO sprite
-    this.load.image("shot2", "./public/assets/shot2.png");
-    this.load.audio("saucer", "./public/assets/saucer.mp3"); // UFO sound
+    // Assets are now preloaded in StartUpMenu
   }
 
   create() {
@@ -60,12 +57,41 @@ export default class Level2 extends Phaser.Scene {
     );
     this.player.setupControls(this.cursors, this.spaceKey);
 
+    // Create Animations for enemies
+    if (!this.anims.exists("octopus_anim")) {
+      this.anims.create({
+        key: "octopus_anim",
+        frames: [{ key: "octopus1" }, { key: "octopus2" }],
+        frameRate: 2,
+        repeat: -1,
+      });
+    }
+    if (!this.anims.exists("crab_anim")) {
+      this.anims.create({
+        key: "crab_anim",
+        frames: [{ key: "crab1" }, { key: "crab2" }],
+        frameRate: 2,
+        repeat: -1,
+      });
+    }
+    if (!this.anims.exists("squid_anim")) {
+      this.anims.create({
+        key: "squid_anim",
+        frames: [{ key: "squid1" }, { key: "squid2" }],
+        frameRate: 2,
+        repeat: -1,
+      });
+    }
+
     // Level2 harder settings
-    this.enemySpeed = 75; // Faster than Level1
+    this.enemySpeed = 15;
+    this.currentEnemySpeed = 15;
     this.enemyFireRate = 700; // Much faster fire rate
     this.playerLives = 2; // Only 2 lives
     this.canShoot = true;
-    this.shootDelay = 150; // Faster shooting needed
+    this.shootDelay = 400; // Adjusted for balance
+    this.movementEnabled = true;
+    this.enemiesPaused = false;
     
     // Filter colors
     this.greenTint = 0x00FF00; // Green color
@@ -74,20 +100,20 @@ export default class Level2 extends Phaser.Scene {
     // UI text must exist before spawning the first wave
     this.scoreText = this.add.text(16, 16, `SCORE: ${this.score}`, {
       fontSize: "24px",
-      fill: "#0f0",
-      fontFamily: "SpaceFont",
+      fill: "#fff",
+      fontFamily: "'Press Start 2P'",
     });
 
-    this.waveText = this.add.text(16, 50, `WAVE: ${this.waveNumber}`, {
-      fontSize: "24px",
-      fill: "#0f0",
-      fontFamily: "SpaceFont",
-    });
+    this.highScoreText = this.add.text(gameWidth / 2, 30, `Hi- score: ${this.highScore}`, {
+      fontSize: "20px",
+      fill: "#fff",
+      fontFamily: "'Press Start 2P'",
+    }).setOrigin(0.5, 0);
 
     this.healthText = this.add.text(gameWidth - 220, gameHeight - 40, `CREDIT 02`, {
       fontSize: "24px",
-      fill: "#0f0",
-      fontFamily: "SpaceFont",
+      fill: "#fff",
+      fontFamily: "'Press Start 2P'",
     });
 
     // Player is always in the green zone
@@ -97,22 +123,59 @@ export default class Level2 extends Phaser.Scene {
     this.createShields();
     this.spawnWave();
 
-    // UFO setup
-    this.ufo = null;
-    this.ufoSound = this.sound.add("saucer");
+    // Centralized shooting logic in create to prevent timer leaks
     this.time.addEvent({
-      delay: Phaser.Math.Between(15000, 30000), // Random delay between 15-30 seconds
-      callback: this.spawnUFO,
-      callbackScope: this,
-      loop: true
+      delay: this.enemyFireRate,
+      callback: () => {
+        if (!this.playerAlive || this.enemiesPaused) return;
+        const aliveEnemies = this.enemies.getChildren().filter(e => e.active);
+        if (aliveEnemies.length === 0) return;
+        
+        // Pick 2 random enemies to shoot in Level 2
+        for(let i=0; i<2; i++) {
+            const shooter = Phaser.Utils.Array.GetRandom(aliveEnemies);
+            if (shooter) this.enemyShoot(shooter);
+        }
+      },
+      loop: true,
     });
 
+    // Alien movement sound rhythm
+    this.time.addEvent({
+      delay: 600, // Slightly faster rhythm for Level 2
+      callback: () => {
+        if (this.enemies.countActive() > 0 && !this.enemiesPaused && this.movementEnabled && this.playerAlive) {
+          if (this.cache.audio.exists("move")) {
+            this.sound.play("move");
+          }
+        }
+      },
+      loop: true,
+    });
+
+    // UFO setup
+    this.ufoGroup = this.physics.add.group();
+    this.ufoSound = this.sound.add("saucer");
+    this.scheduleUFO();
+
+    // Stop UFO sound when leaving the scene to prevent it from persisting in the menu
+    this.events.on('shutdown', () => {
+      this.ufoSound.stop();
+    });
 
     // Collision detection
     this.physics.add.collider(this.playerBullets, this.enemies, this.bulletHitEnemy, null, this);
     this.physics.add.collider(this.playerBullets, this.shields, this.bulletHitShield, null, this);
     this.physics.add.collider(this.enemyBullets, this.player, this.playerHit, null, this);
     this.physics.add.collider(this.enemyBullets, this.shields, this.bulletHitShield, null, this);
+    this.physics.add.collider(this.playerBullets, this.ufoGroup, this.bulletHitUFO, null, this);
+  }
+
+  scheduleUFO() {
+    this.time.delayedCall(Phaser.Math.Between(12000, 25000), () => {
+      this.spawnUFO();
+      this.scheduleUFO();
+    });
   }
 
   createShields() {
@@ -125,22 +188,22 @@ export default class Level2 extends Phaser.Scene {
       gameWidth * 0.88,
     ];
 
-    // Shields are always in the green zone
     shieldPositions.forEach((xPos) => {
-      const shield = this.shields.create(xPos, this.gameHeight - 120, "cover");
-      shield.setScale(1.8);
-      shield.health = 2; // Weaker shields in Level2
-      shield.setTint(this.greenTint); // Apply green tint to shields
-      shield.setOrigin(0.5, 0.5);
+      // Level 2 has smaller, more fragile shield segments
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 7; col++) {
+          if ((row === 0 && (col < 2 || col > 4)) || (row > 2 && (col > 1 && col < 5))) continue;
+
+          const part = this.shields.create(xPos - 22 + (col * 7), this.gameHeight - 160 + (row * 7), "cover");
+          part.setScale(0.4);
+          part.setTint(this.greenTint);
+          part.health = 1;
+        }
+      }
     });
   }
 
   spawnWave() {
-    this.waveNumber++;
-    if (this.waveText) {
-      this.waveText.setText(`WAVE: ${this.waveNumber}`);
-    }
-
     // Clear old enemies
     this.enemies.clear(true, true);
 
@@ -148,67 +211,48 @@ export default class Level2 extends Phaser.Scene {
     const gameHeight = this.gameHeight;
     const cols = 11;
     const rows = 5;
-    const horizontalSpacing = gameWidth / (cols + 1);
-    const enemySprites = ["octopus", "crab", "squid"]; // Different enemy sprites
+    const horizontalSpacing = gameWidth / (cols + 3);
 
     // More enemies and closer to player in Level2
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        const x = horizontalSpacing * (col + 1);
-        const y = 30 + row * 50; // Starts closer to player
-        // Assign different sprites based on row
-        const enemySpriteKey = enemySprites[row % enemySprites.length];
-        const enemy = this.enemies.create(x, y, enemySpriteKey);
+        const x = (gameWidth * 0.15) + (horizontalSpacing * col);
+        const y = 180 + row * 40; // Lowered further for Level 2
+        
+        let enemySpriteKey = "octopus";
+        if (row < 2) enemySpriteKey = "squid";
+        else if (row < 4) enemySpriteKey = "crab";
+
+        const enemy = this.enemies.create(x, y, enemySpriteKey + "1");
+        enemy.play(enemySpriteKey + "_anim");
         enemy.setScale(1.2);
 
-        // Wave speed increases per wave
-        const waveSpeedMultiplier = 1 + this.waveNumber * 0.4;
-        enemy.setVelocityX(this.enemySpeed * waveSpeedMultiplier);
         enemy.direction = 1;
         enemy.row = row;
-
-        // Enemy shoots faster and more frequently
-        const fireRate = this.enemyFireRate * (1 / (1 + this.waveNumber * 0.2));
-        this.time.addEvent({
-          delay: fireRate + Phaser.Math.Between(-200, 200),
-          callback: () => {
-            if (enemy.active) {
-              this.enemyShoot(enemy);
-            }
-          },
-          loop: true,
-        });
       }
     }
   }
 
   spawnUFO() {
-    if (this.ufo && this.ufo.active) return; // Only one UFO at a time
+    if (this.ufoGroup.countActive() > 0) return;
 
-    const startX = Phaser.Math.Between(0, 1) === 0 ? -50 : this.gameWidth + 50; // Start from left or right
-    const y = Phaser.Math.Between(50, 100); // Top part of the screen
+    const startX = Phaser.Math.Between(0, 1) === 0 ? -50 : this.gameWidth + 50;
+    const y = 90; // Lowered to avoid score text
 
-    this.ufo = this.physics.add.sprite(startX, y, "ufo");
-    this.ufo.setScale(1.5);
-    this.ufo.setDepth(5); // Above enemies, below player
-    this.ufo.setVelocityX(startX < 0 ? 100 : -100); // Move across
-    this.ufo.setImmovable(true); // So it doesn't react to collisions physically
-    this.ufo.body.allowGravity = false;
+    const ufo = this.ufoGroup.create(startX, y, "ufo");
+    ufo.setScale(1.5);
+    ufo.setDepth(5);
+    ufo.setVelocityX(startX < 0 ? 100 : -100);
+    ufo.setImmovable(true);
+    ufo.body.allowGravity = false;
 
-    this.ufoSound.play();
-
-    // Add collision for player bullets and UFO
-    this.physics.add.collider(this.playerBullets, this.ufo, this.bulletHitUFO, null, this);
+    this.ufoSound.play({ loop: true });
 
     this.time.addEvent({
-      delay: 10000, // UFO disappears after 10 seconds if not hit
+      delay: 10000,
       callback: () => {
-        if (this.ufo && this.ufo.active) {
-          this.ufo.destroy();
-          this.ufoSound.stop();
-        }
-      },
-      callbackScope: this
+        if (ufo && ufo.active) { ufo.destroy(); this.ufoSound.stop(); }
+      }
     });
   }
 
@@ -218,53 +262,82 @@ export default class Level2 extends Phaser.Scene {
     bullet.destroy();
     ufo.destroy();
     this.ufoSound.stop();
+    this.sound.play("explosion");
+
+    const explosion = this.add.sprite(ufoX, ufoY, "enemyexplosion");
+    explosion.setScale(1.5);
+    this.time.delayedCall(100, () => {
+      explosion.destroy();
+    });
+
     this.score += 100;
     this.scoreText.setText(`SCORE: ${this.score}`);
 
     // Show points on screen
     const pointsText = this.add.text(ufoX, ufoY, "100", {
       fontSize: "20px",
-      fill: "#f00",
-      fontFamily: "SpaceFont",
+      fill: "#fff",
+      fontFamily: "'Press Start 2P'",
     }).setOrigin(0.5);
     this.time.delayedCall(1000, () => pointsText.destroy());
   }
 
-  enemyShoot(enemy) {
-    const bullet = this.enemyBullets.create(enemy.x, enemy.y + 15, "shot2");
-    bullet.setScale(1);
-    bullet.setVelocityY(250); // Faster bullets in Level2
+  updateScoreUI() {
+    this.scoreText.setText(`SCORE: ${this.score}`);
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
+      this.highScoreText.setText(`Hi- score: ${this.highScore}`);
+      try {
+        localStorage.setItem("highScore", this.highScore);
+      } catch (e) {
+        // LocalStorage disabled
+      }
+    }
   }
 
-  playerShoot() {
-    if (!this.playerAlive || !this.canShoot) return;
-
-    const bullet = this.playerBullets.create(this.player.x, this.player.y - 20, "projectile");
-    bullet.setScale(1);
-    bullet.setVelocityY(-400);
-
-    this.canShoot = false;
-    this.time.addEvent({
-      delay: this.shootDelay,
-      callback: () => {
-        this.canShoot = true;
-      },
+  enemyShoot(enemy) {
+    // Briefly stop movement when firing
+    this.movementEnabled = false;
+    this.time.delayedCall(300, () => {
+      this.movementEnabled = true;
     });
+
+    const bullet = this.enemyBullets.create(enemy.x, enemy.y + 15, "shot2");
+    bullet.setScale(1);
+    bullet.setVelocityY(180); // Adjusted firing speed
   }
 
   bulletHitEnemy(bullet, enemy) {
+    let points = 10;
+    if (enemy.texture.key.includes("squid")) points = 30;
+    else if (enemy.texture.key.includes("crab")) points = 20;
+
+    const ex = enemy.x;
+    const ey = enemy.y;
+
     bullet.destroy();
     enemy.destroy();
+    this.sound.play("explosion");
 
-    this.score += 20; // More points in Level2
+    const explosion = this.add.sprite(ex, ey, "enemyexplosion");
+    explosion.setScale(1.2);
+    this.time.delayedCall(100, () => {
+      explosion.destroy();
+    });
+
+    this.score += points;
+
     this.enemiesDestroyed++;
-    this.scoreText.setText(`SCORE: ${this.score}`);
+    this.updateScoreUI();
+    
+    // Scale speed: gets faster even more aggressively in level 2
+    this.currentEnemySpeed = this.enemySpeed + (this.enemiesDestroyed * 1.5);
 
     // Check if current wave is destroyed
-    if (this.enemies.children.entries.length === 0) {
+    if (this.enemies.countActive() === 0) {
       if (this.enemiesDestroyed >= this.totalEnemiesToWin) {
         // Win condition met: all required enemies destroyed
-        this.scene.start("WinScene", {
+        this.scene.start("WinCondition", {
           message: "Level 2 Complete! You are a master!",
           score: this.score,
           collectedShapes: { diamond: this.enemiesDestroyed, triangle: 0, square: 0 },
@@ -277,13 +350,7 @@ export default class Level2 extends Phaser.Scene {
 
   bulletHitShield(bullet, shield) {
     bullet.destroy();
-    shield.health--;
-
-    if (shield.health <= 0) {
-      shield.destroy();
-    } else {
-      shield.setAlpha(1 - (1 - shield.health / 2) * 0.6);
-    }
+    shield.destroy();
   }
 
   playerHit(player, bullet) {
@@ -292,19 +359,41 @@ export default class Level2 extends Phaser.Scene {
     bullet.destroy();
     this.playerLives--;
     this.healthText.setText(`CREDIT 0${this.playerLives}`);
+    
+    // Pause enemies and hide player
+    this.enemiesPaused = true;
+    this.playerAlive = false;
+    this.player.setVisible(false);
+    this.player.body.enable = false;
+    this.sound.play("explosion");
 
-    if (this.playerLives <= 0) {
-      this.playerDeath();
-    } else {
-      // Respawn player
-      this.player.setPosition(this.gameWidth / 2, this.gameHeight - 50);
-      this.player.setVelocity(0, 0);
-      this.player.body.enable = true;
-    }
+    // Play explosion
+    const explosion = this.add.sprite(this.player.x, this.player.y, "playerexplosion");
+    explosion.setScale(1.5);
+
+    this.time.delayedCall(1500, () => {
+      explosion.destroy();
+      if (this.playerLives <= 0) {
+        this.scene.start("LosingCondition", {
+          score: this.score,
+          collectedShapes: { diamond: this.enemiesDestroyed, triangle: 0, square: 0 },
+        });
+      } else {
+        // Respawn
+        this.player.setPosition(this.gameWidth / 2, this.gameHeight - 50);
+        this.player.setVelocity(0, 0);
+        this.player.setVisible(true);
+        this.player.body.enable = true;
+        this.playerAlive = true;
+        this.enemiesPaused = false;
+      }
+    });
   }
 
   playerDeath() {
+    if (!this.player || !this.player.active) return;
     this.playerAlive = false;
+    this.sound.play("explosion");
     const explosion = this.add.sprite(this.player.x, this.player.y, "playerexplosion");
     explosion.setScale(1.5);
     this.player.destroy();
@@ -321,86 +410,99 @@ export default class Level2 extends Phaser.Scene {
   }
 
   checkGameOver() {
+    if (!this.playerAlive) return;
     // Game over if enemies reach the bottom
     const gameOverY = this.gameHeight - 120;
-    this.enemies.children.entries.forEach((enemy) => {
-      if (enemy.y >= gameOverY) {
+    const enemies = this.enemies.getChildren();
+    for (let i = 0; i < enemies.length; i++) {
+      const enemy = enemies[i];
+      if (enemy.active && enemy.body && enemy.y >= gameOverY) {
         this.playerDeath();
+        break; // Stop checking immediately
       }
-    });
+    }
   }
 
   update() {
-    if (!this.playerAlive) return;
+    if (!this.playerAlive || !this.player || !this.player.active) return;
 
     // Define filter zones
-    const greenZoneYStart = this.gameHeight * 0.5; // Bottom half
-    const redZoneYEnd = this.gameHeight * 0.2; // Top 20%
-
-    // Player movement with proper boundary checking
-    const playerSpeed = 350;
-    const minX = this.player.displayWidth / 2;
-    const maxX = this.gameWidth - (this.player.displayWidth / 2);
+    const greenZoneYStart = this.gameHeight * 0.8; 
+    const redZoneYEnd = this.gameHeight * 0.15;
 
     // Player movement and shooting through Player class
     this.player.update();
 
     // Clamp player position within bounds
+    const minX = this.player.displayWidth / 2;
+    const maxX = this.gameWidth - (this.player.displayWidth / 2);
     if (this.player.x < minX) this.player.x = minX;
     if (this.player.x > maxX) this.player.x = maxX;
 
-    // Player is always in the green zone
     this.player.setTint(this.greenTint);
 
-    // Enemy movement - move down when reaching edges
+    if (this.enemiesPaused || !this.movementEnabled) {
+      this.enemies.setVelocityX(0);
+      return;
+    }
+
     let moveDown = false;
     const edgeMargin = this.gameWidth * 0.05;
+    const enemiesArray = this.enemies.getChildren();
 
-    this.enemies.children.entries.forEach((enemy) => {
+    // Consolidated optimization: One loop
+    for (let i = 0; i < enemiesArray.length; i++) {
+      const enemy = enemiesArray[i];
+      if (!enemy.active || !enemy.body) continue;
+
+      if (enemy.body.velocity.x === 0) {
+        enemy.setVelocityX(this.currentEnemySpeed * (enemy.direction || 1));
+      }
+
       if ((enemy.direction > 0 && enemy.x >= this.gameWidth - edgeMargin) || 
           (enemy.direction < 0 && enemy.x <= edgeMargin)) {
         moveDown = true;
       }
-    });
+
+      if (enemy.y > greenZoneYStart) {
+        enemy.setTint(this.greenTint);
+      } else if (enemy.y < redZoneYEnd) {
+        enemy.setTint(this.redTint);
+      } else {
+        enemy.clearTint();
+      }
+    }
 
     if (moveDown) {
-      this.enemies.children.entries.forEach((enemy) => {
-        enemy.direction *= -1;
-        const waveSpeedMultiplier = 1 + this.waveNumber * 0.4;
-        enemy.setVelocityX(this.enemySpeed * waveSpeedMultiplier * enemy.direction);
-        enemy.y += 50; // Move down faster in Level2
-      });
+      for (let j = 0; j < enemiesArray.length; j++) {
+        const e = enemiesArray[j];
+        if (e.active && e.body) {
+          e.direction *= -1;
+          e.setVelocityX(this.currentEnemySpeed * e.direction);
+          e.y += 40; 
+        }
+      }
     }
     
-    // Apply tints to enemies based on zones
-    this.enemies.children.entries.forEach(enemy => {
-      if (enemy.active) {
-        if (enemy.y > greenZoneYStart) {
-          enemy.setTint(this.greenTint);
-        } else if (enemy.y < redZoneYEnd) {
-          enemy.setTint(this.redTint);
+    // Safe UFO handling using the group
+    this.ufoGroup.getChildren().forEach(ufo => {
+      if (ufo.active && ufo.body) {
+        if (ufo.y > greenZoneYStart) {
+          ufo.setTint(this.greenTint);
+        } else if (ufo.y < redZoneYEnd) {
+          ufo.setTint(this.redTint);
         } else {
-          enemy.clearTint(); // Clear tint if in middle zone
+          ufo.clearTint();
+        }
+
+        // Destroy UFO if it goes off screen
+        if ((ufo.body.velocity.x > 0 && ufo.x > this.gameWidth + 50) ||
+            (ufo.body.velocity.x < 0 && ufo.x < -50)) {
+            ufo.destroy();
+            this.ufoSound.stop();
         }
       }
     });
-
-    // UFO tinting (if it exists)
-    if (this.ufo && this.ufo.active) {
-      if (this.ufo.y > greenZoneYStart) {
-        this.ufo.setTint(this.greenTint);
-      } else if (this.ufo.y < redZoneYEnd) {
-        this.ufo.setTint(this.redTint);
-      } else {
-        this.ufo.clearTint();
-      }
-      // Destroy UFO if it goes off screen
-      if ((this.ufo.body.velocity.x > 0 && this.ufo.x > this.gameWidth + 50) ||
-          (this.ufo.body.velocity.x < 0 && this.ufo.x < -50)) {
-          this.ufo.destroy();
-          this.ufoSound.stop();
-      }
-    }
 
     // Check for game over condition
     this.checkGameOver();

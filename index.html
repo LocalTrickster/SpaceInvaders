@@ -7,10 +7,12 @@
 
     <title>Phaser 3 Template</title>
     <style>
-      @font-face {
-        font-family: 'SpaceFont';
-        /* Assuming the font file is named space_invaders.ttf in your assets */
-        src: url('./public/assets/space_invaders.ttf');
+      /* Use a standard font-face to ensure Phaser recognizes it immediately */
+      @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+      body {
+        font-family: 'Press Start 2P', monospace;
+        background-color: #000;
+        margin: 0;
       }
     </style>
 
@@ -20,5 +22,7 @@
     <!-- Import an run main.js : load the game config and start first scene -->
     <script type="module" src="./main.js"></script>
   </head>
-  <body></body>
+  <body>
+    <div style="font-family: 'Press Start 2P'; position: absolute; left: -9999px; visibility: hidden;">.</div>
+  </body>
 </html>
