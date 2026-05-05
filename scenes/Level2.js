@@ -8,6 +8,7 @@ export default class Level2 extends Phaser.Scene {
   init() {
     this.score = 0;
     this.enemiesDestroyed = 0;
+    this.moveSoundIndex = 0;
     this.totalEnemiesToWin = 36; // Total enemies to destroy for this level
     this.currentEnemySpeed = 15;
     try {
@@ -82,14 +83,6 @@ export default class Level2 extends Phaser.Scene {
         repeat: -1,
       });
     }
-
-    // Level2 harder settings
-    this.enemySpeed = 15;
-    this.currentEnemySpeed = 15;
-    this.enemyFireRate = 700; // Much faster fire rate
-    this.playerLives = 2; // Only 2 lives
-    this.canShoot = true;
-    this.shootDelay = 400; // Adjusted for balance
     this.movementEnabled = true;
     this.enemiesPaused = false;
     
@@ -99,12 +92,12 @@ export default class Level2 extends Phaser.Scene {
 
     // UI text must exist before spawning the first wave
     this.scoreText = this.add.text(16, 16, `SCORE: ${this.score}`, {
-      fontSize: "24px",
+      fontSize: "18px",
       fill: "#fff",
       fontFamily: "'Press Start 2P'",
     });
 
-    this.highScoreText = this.add.text(gameWidth / 2, 30, `Hi- score: ${this.highScore}`, {
+    this.highScoreText = this.add.text(gameWidth / 2, 45, `Hi- score: ${this.highScore}`, {
       fontSize: "20px",
       fill: "#fff",
       fontFamily: "'Press Start 2P'",
@@ -146,7 +139,9 @@ export default class Level2 extends Phaser.Scene {
       callback: () => {
         if (this.enemies.countActive() > 0 && !this.enemiesPaused && this.movementEnabled && this.playerAlive) {
           if (this.cache.audio.exists("move")) {
-            this.sound.play("move");
+            const detuneValues = [-150, 0, 150];
+            this.sound.play("move", { detune: detuneValues[this.moveSoundIndex] });
+            this.moveSoundIndex = (this.moveSoundIndex + 1) % 3;
           }
         }
       },
@@ -217,7 +212,7 @@ export default class Level2 extends Phaser.Scene {
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         const x = (gameWidth * 0.15) + (horizontalSpacing * col);
-        const y = 180 + row * 40; // Lowered further for Level 2
+        const y = 220 + row * 40; // Lowered further for Level 2
         
         let enemySpriteKey = "octopus";
         if (row < 2) enemySpriteKey = "squid";
@@ -296,13 +291,26 @@ export default class Level2 extends Phaser.Scene {
   }
 
   enemyShoot(enemy) {
-    // Briefly stop movement when firing
+    if (!enemy || !enemy.active) return;
+
     this.movementEnabled = false;
-    this.time.delayedCall(300, () => {
+    this.time.delayedCall(1000, () => {
       this.movementEnabled = true;
     });
 
-    const bullet = this.enemyBullets.create(enemy.x, enemy.y + 15, "shot2");
+    const types = ['a', 'b', 'c'];
+    const selectedType = Phaser.Utils.Array.GetRandom(types).toLowerCase();
+    const animKey = `projectile${selectedType}_anim`;
+    const textureKey = `projectile${selectedType}1`;
+
+    let finalTexture = this.textures.exists(textureKey) ? textureKey : "shot2";
+    if (!this.textures.exists(finalTexture)) finalTexture = "projectile";
+
+    const bullet = this.enemyBullets.create(enemy.x, enemy.y + 15, finalTexture);
+    
+    if (this.anims.exists(animKey) && this.anims.get(animKey).frames.length > 0) {
+      bullet.play(animKey);
+    }
     bullet.setScale(1);
     bullet.setVelocityY(180); // Adjusted firing speed
   }
@@ -362,6 +370,8 @@ export default class Level2 extends Phaser.Scene {
     
     // Pause enemies and hide player
     this.enemiesPaused = true;
+    this.enemies.setVelocityX(0);
+    this.ufoGroup.setVelocityX(0);
     this.playerAlive = false;
     this.player.setVisible(false);
     this.player.body.enable = false;
@@ -392,6 +402,9 @@ export default class Level2 extends Phaser.Scene {
 
   playerDeath() {
     if (!this.player || !this.player.active) return;
+    this.enemiesPaused = true;
+    this.enemies.setVelocityX(0);
+    this.ufoGroup.setVelocityX(0);
     this.playerAlive = false;
     this.sound.play("explosion");
     const explosion = this.add.sprite(this.player.x, this.player.y, "playerexplosion");

@@ -18,6 +18,12 @@ export default class StartUpMenu extends Phaser.Scene {
     this.load.image("squid2", "./public/assets/Squid2.png");
     this.load.image("ufo", "./public/assets/UFO.png");
     this.load.image("shot2", "./public/assets/shot2.png");
+    this.load.image("projectilea1", "./public/assets/projectileA1.png");
+    this.load.image("projectilea2", "./public/assets/projectileA2.png");
+    this.load.image("projectileb1", "./public/assets/projectileB1.png");
+    this.load.image("projectileb2", "./public/assets/projectileB2.png");
+    this.load.image("projectilec1", "./public/assets/projectileC1.png");
+    this.load.image("projectilec2", "./public/assets/projectileC2.png");
     this.load.audio("saucer", "./public/assets/saucer.mp3");
     this.load.audio("shoot", "./public/assets/shoot.mp3");
     this.load.audio("move", "./public/assets/move.mp3");

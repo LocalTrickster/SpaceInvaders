@@ -8,6 +8,7 @@ export default class Level1 extends Phaser.Scene {
   init() {
     this.score = 0;
     this.enemiesDestroyed = 0;
+    this.moveSoundIndex = 0;
     this.totalEnemiesToWin = 24; // Total enemies to destroy for this level
     this.currentEnemySpeed = 10;
     try {
@@ -82,6 +83,23 @@ export default class Level1 extends Phaser.Scene {
         repeat: -1,
       });
     }
+    // Create Animations for projectiles safely
+    ['a', 'b', 'c'].forEach(type => {
+      const animKey = `projectile${type.toLowerCase()}_anim`;
+      if (!this.anims.exists(animKey)) {
+        const f1 = `projectile${type.toLowerCase()}1`;
+        const f2 = `projectile${type.toLowerCase()}2`;
+        // Only create animation if textures actually loaded
+        if (this.textures.exists(f1) && this.textures.exists(f2)) {
+          this.anims.create({
+            key: animKey,
+            frames: [{ key: f1 }, { key: f2 }],
+            frameRate: 4,
+            repeat: -1,
+          });
+        }
+      }
+    });
 
     // Game variables
     this.enemySpeed = 10; 
@@ -99,12 +117,12 @@ export default class Level1 extends Phaser.Scene {
 
     // UI text must exist before spawning the first wave
     this.scoreText = this.add.text(16, 16, `SCORE: ${this.score}`, {
-      fontSize: "24px",
+      fontSize: "18px",
       fill: "#fff",
       fontFamily: "'Press Start 2P'",
     });
 
-    this.highScoreText = this.add.text(gameWidth / 2, 30, `Hi- score: ${this.highScore}`, {
+    this.highScoreText = this.add.text(gameWidth / 2, 45, `Hi- score: ${this.highScore}`, {
       fontSize: "20px",
       fill: "#fff",
       fontFamily: "'Press Start 2P'",
@@ -143,7 +161,9 @@ export default class Level1 extends Phaser.Scene {
       callback: () => {
         if (this.enemies.countActive() > 0 && !this.enemiesPaused && this.movementEnabled && this.playerAlive) {
           if (this.cache.audio.exists("move")) {
-            this.sound.play("move");
+            const detuneValues = [-150, 0, 150];
+            this.sound.play("move", { detune: detuneValues[this.moveSoundIndex] });
+            this.moveSoundIndex = (this.moveSoundIndex + 1) % 3;
           }
         }
       },
@@ -237,7 +257,29 @@ export default class Level1 extends Phaser.Scene {
   }
 
   enemyShoot(enemy) {
-    const bullet = this.enemyBullets.create(enemy.x, enemy.y + 15, "shot2");
+    if (!enemy || !enemy.active) return;
+
+    // Stop movement temporarily for 1 second
+    this.movementEnabled = false;
+    this.time.delayedCall(1000, () => {
+      this.movementEnabled = true;
+    });
+
+    const types = ['a', 'b', 'c'];
+    const selectedType = Phaser.Utils.Array.GetRandom(types).toLowerCase();
+    const animKey = `projectile${selectedType}_anim`;
+    const textureKey = `projectile${selectedType}1`;
+    
+    // Check if texture exists before creating, fallback to shot2 if available
+    let finalTexture = this.textures.exists(textureKey) ? textureKey : "shot2";
+    if (!this.textures.exists(finalTexture)) finalTexture = "projectile"; // Final safety fallback
+
+    const bullet = this.enemyBullets.create(enemy.x, enemy.y + 15, finalTexture);
+    
+    // Only play if animation exists and has frames to prevent crash
+    if (this.anims.exists(animKey) && this.anims.get(animKey).frames.length > 0) {
+      bullet.play(animKey);
+    }
     bullet.setScale(1);
     bullet.setVelocityY(140); // Slower enemy firing
   }
@@ -362,6 +404,8 @@ export default class Level1 extends Phaser.Scene {
     
     // Pause enemies and hide player
     this.enemiesPaused = true;
+    this.enemies.setVelocityX(0);
+    this.ufoGroup.setVelocityX(0);
     this.playerAlive = false;
     this.player.setVisible(false);
     this.player.body.enable = false;
@@ -392,6 +436,9 @@ export default class Level1 extends Phaser.Scene {
 
   playerDeath() {
     if (!this.player || !this.player.active) return;
+    this.enemiesPaused = true;
+    this.enemies.setVelocityX(0);
+    this.ufoGroup.setVelocityX(0);
     this.playerAlive = false;
     this.sound.play("explosion");
     const explosion = this.add.sprite(this.player.x, this.player.y, "playerexplosion");
