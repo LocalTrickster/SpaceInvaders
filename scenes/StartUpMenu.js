@@ -112,25 +112,21 @@ export default class StartUpMenu extends Phaser.Scene {
       fontFamily: "'Press Start 2P'",
     }).setOrigin(0.5);
 
-    this.input.keyboard.on("keydown-SPACE", () => {
-      if (!this.loadingComplete) return;
-      this.scene.start("Level1");
-    });
+    // --- Audio Unlock Logic ---
+    const resumeAudio = () => {
+      if (this.sound.context && this.sound.context.state === 'suspended') {
+        this.sound.context.resume();
+      }
+    };
 
-    this.input.keyboard.on("keydown-C", () => {
-        if (!this.loadingComplete) return;
-        this.scene.start("ControlsScene");
-    });
+    // Listen for any interaction to unlock audio
+    this.input.on('pointerdown', resumeAudio);
+    this.input.keyboard.on('keydown', resumeAudio);
 
-    this.input.keyboard.on("keydown-1", () => {
-      if (!this.loadingComplete) return;
-      this.scene.start("Level1");
-    });
-
-    this.input.keyboard.on("keydown-2", () => {
-      if (!this.loadingComplete) return;
-      this.scene.start("Level2");
-    });
+    this.input.keyboard.on("keydown-SPACE", () => { if (this.loadingComplete) { resumeAudio(); this.scene.start("Level1"); } });
+    this.input.keyboard.on("keydown-C", () => { if (this.loadingComplete) { resumeAudio(); this.scene.start("ControlsScene"); } });
+    this.input.keyboard.on("keydown-1", () => { if (this.loadingComplete) { resumeAudio(); this.scene.start("Level1"); } });
+    this.input.keyboard.on("keydown-2", () => { if (this.loadingComplete) { resumeAudio(); this.scene.start("Level2"); } });
   }
 
   update() {
@@ -138,14 +134,10 @@ export default class StartUpMenu extends Phaser.Scene {
     this.inputSystem.update();
 
     if (this.loadingComplete) {
-      // Resume audio context on first interaction (required by browsers)
-      if (this.sound.context && this.sound.context.state === 'suspended') {
-        this.sound.context.resume();
-      }
-
       // Check for gamepad actions
       // Only FIRE (Cross) starts the level. RESTART (Options) is reserved for menu navigation.
       if (this.inputSystem.isJustPressed(INPUT_ACTIONS.FIRE)) { 
+        if (this.sound.context && this.sound.context.state === 'suspended') this.sound.context.resume();
         this.scene.start("Level1");
       }
       if (this.inputSystem.isJustPressed(INPUT_ACTIONS.PUNCH)) { // Square

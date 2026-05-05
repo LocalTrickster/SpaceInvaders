@@ -104,13 +104,14 @@ export default class InputSystem {
 
   /** Debe llamarse al inicio de cada frame (antes de leer inputs). */
   update() {
-    const pads = navigator.getGamepads();
+    const pads = Array.from(navigator.getGamepads()).filter(p => p !== null);
+
     if (this._swapped) {
-      this._gamepad[0] = pads[1] ?? null;
-      this._gamepad[1] = pads[0] ?? null;
+      this._gamepad[0] = pads[1] || null;
+      this._gamepad[1] = pads[0] || null;
     } else {
-      this._gamepad[0] = pads[0] ?? null;
-      this._gamepad[1] = pads[1] ?? null;
+      this._gamepad[0] = pads[0] || null;
+      this._gamepad[1] = pads[1] || null;
     }
   }
 

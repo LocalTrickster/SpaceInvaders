@@ -12,6 +12,7 @@ export default class Level2 extends Phaser.Scene {
     this.moveSoundIndex = 0;
     this.totalEnemiesToWin = 36; // Total enemies to destroy for this level
     this.currentEnemySpeed = 15;
+    this.enemyFireRate = 1000;
     try {
       const saved = localStorage.getItem("highScore");
       this.highScore = parseInt(saved) || 0;
@@ -373,7 +374,6 @@ export default class Level2 extends Phaser.Scene {
     // Pause enemies and hide player
     this.enemiesPaused = true;
     this.enemies.setVelocityX(0);
-    this.ufoGroup.setVelocityX(0);
     this.playerAlive = false;
     this.player.setVisible(false);
     this.player.body.enable = false;
@@ -406,7 +406,6 @@ export default class Level2 extends Phaser.Scene {
     if (!this.player || !this.player.active) return;
     this.enemiesPaused = true;
     this.enemies.setVelocityX(0);
-    this.ufoGroup.setVelocityX(0);
     this.playerAlive = false;
     this.sound.play("explosion");
     const explosion = this.add.sprite(this.player.x, this.player.y, "playerexplosion");
@@ -440,79 +439,25 @@ export default class Level2 extends Phaser.Scene {
 
   update() {
     this.inputSystem.update();
-
-    if (!this.playerAlive || !this.player || !this.player.active) return;
-
-    // Define filter zones
     const greenZoneYStart = this.gameHeight * 0.8; 
     const redZoneYEnd = this.gameHeight * 0.15;
 
-    // Player movement and shooting through Player class
-    this.player.update();
-
-    // Clamp player position within bounds
-    const minX = this.player.displayWidth / 2;
-    const maxX = this.gameWidth - (this.player.displayWidth / 2);
-    if (this.player.x < minX) this.player.x = minX;
-    if (this.player.x > maxX) this.player.x = maxX;
-
-    this.player.setTint(this.greenTint);
-
-    if (this.enemiesPaused || !this.movementEnabled) {
-      this.enemies.setVelocityX(0);
-      return;
+    if (this.playerAlive && this.player && this.player.active) {
+      this.player.update();
+      const minX = this.player.displayWidth / 2;
+      const maxX = this.gameWidth - (this.player.displayWidth / 2);
+      if (this.player.x < minX) this.player.x = minX;
+      if (this.player.x > maxX) this.player.x = maxX;
+      this.player.setTint(this.greenTint);
     }
 
-    let moveDown = false;
-    const edgeMargin = this.gameWidth * 0.05;
-    const enemiesArray = this.enemies.getChildren();
-
-    // Consolidated optimization: One loop
-    for (let i = 0; i < enemiesArray.length; i++) {
-      const enemy = enemiesArray[i];
-      if (!enemy.active || !enemy.body) continue;
-
-      if (enemy.body.velocity.x === 0) {
-        enemy.setVelocityX(this.currentEnemySpeed * (enemy.direction || 1));
-      }
-
-      if ((enemy.direction > 0 && enemy.x >= this.gameWidth - edgeMargin) || 
-          (enemy.direction < 0 && enemy.x <= edgeMargin)) {
-        moveDown = true;
-      }
-
-      if (enemy.y > greenZoneYStart) {
-        enemy.setTint(this.greenTint);
-      } else if (enemy.y < redZoneYEnd) {
-        enemy.setTint(this.redTint);
-      } else {
-        enemy.clearTint();
-      }
-    }
-
-    if (moveDown) {
-      for (let j = 0; j < enemiesArray.length; j++) {
-        const e = enemiesArray[j];
-        if (e.active && e.body) {
-          e.direction *= -1;
-          e.setVelocityX(this.currentEnemySpeed * e.direction);
-          e.y += 40; 
-        }
-      }
-    }
-    
-    // Safe UFO handling using the group
+    // UFO logic
     this.ufoGroup.getChildren().forEach(ufo => {
       if (ufo.active && ufo.body) {
-        if (ufo.y > greenZoneYStart) {
-          ufo.setTint(this.greenTint);
-        } else if (ufo.y < redZoneYEnd) {
-          ufo.setTint(this.redTint);
-        } else {
-          ufo.clearTint();
-        }
+        if (ufo.y > greenZoneYStart) ufo.setTint(this.greenTint);
+        else if (ufo.y < redZoneYEnd) ufo.setTint(this.redTint);
+        else ufo.clearTint();
 
-        // Destroy UFO if it goes off screen
         if ((ufo.body.velocity.x > 0 && ufo.x > this.gameWidth + 50) ||
             (ufo.body.velocity.x < 0 && ufo.x < -50)) {
             ufo.destroy();
@@ -521,7 +466,42 @@ export default class Level2 extends Phaser.Scene {
       }
     });
 
-    // Check for game over condition
+    if (!this.enemiesPaused && this.movementEnabled && this.playerAlive) {
+      let moveDown = false;
+      const edgeMargin = this.gameWidth * 0.05;
+      const enemiesArray = this.enemies.getChildren();
+
+      for (let i = 0; i < enemiesArray.length; i++) {
+        const enemy = enemiesArray[i];
+        if (!enemy.active || !enemy.body) continue;
+
+        if (enemy.body.velocity.x === 0) {
+          enemy.setVelocityX(this.currentEnemySpeed * (enemy.direction || 1));
+        }
+        if ((enemy.direction > 0 && enemy.x >= this.gameWidth - edgeMargin) || 
+            (enemy.direction < 0 && enemy.x <= edgeMargin)) {
+          moveDown = true;
+        }
+
+        if (enemy.y > greenZoneYStart) enemy.setTint(this.greenTint);
+        else if (enemy.y < redZoneYEnd) enemy.setTint(this.redTint);
+        else enemy.clearTint();
+      }
+
+      if (moveDown) {
+        enemiesArray.forEach(e => {
+          if (e.active && e.body) {
+            e.direction *= -1;
+            e.setVelocityX(this.currentEnemySpeed * e.direction);
+            e.y += 40; 
+          }
+        });
+      }
+    } else {
+      this.enemies.setVelocityX(0);
+    }
+
     this.checkGameOver();
+    this.inputSystem.lateUpdate();
   }
 }
