@@ -1,3 +1,5 @@
+import InputSystem, { INPUT_ACTIONS } from './InputSystem.js';
+
 export default class StartUpMenu extends Phaser.Scene {
   constructor() {
     super("StartUpMenu");
@@ -10,7 +12,7 @@ export default class StartUpMenu extends Phaser.Scene {
     this.load.image("cover", "./public/assets/Cover.png");
     this.load.image("player", "./public/assets/Player.png");
     this.load.image("playerexplosion", "./public/assets/PlayerExplosion.png");
-    this.load.image("enemyexplosion", "./public/assets/Enemyexplosion.png");
+    this.load.image("enemyexplosion", "./public/assets/EnemyExplosion.png");
     this.load.image("projectile", "./public/assets/Projectile_Player.png");
     this.load.image("crab1", "./public/assets/Crab1.png");
     this.load.image("crab2", "./public/assets/Crab2.png");
@@ -39,6 +41,15 @@ export default class StartUpMenu extends Phaser.Scene {
     const gameWidth = this.cameras.main.width;
     const gameHeight = this.cameras.main.height;
 
+    // Initialize InputSystem with mapped keys
+    this.inputSystem = new InputSystem(this, {
+      [INPUT_ACTIONS.FIRE]:    'SPACE',
+      [INPUT_ACTIONS.RESTART]: 'R',
+      [INPUT_ACTIONS.PUNCH]:   'C',
+      [INPUT_ACTIONS.KICK]:    '1',
+      [INPUT_ACTIONS.JUMP]:    '2',
+    });
+
     this.cameras.main.setBackgroundColor("#000000");
     
     const highScore = localStorage.getItem("highScore") || "0";
@@ -63,7 +74,7 @@ export default class StartUpMenu extends Phaser.Scene {
       fontFamily: "'Press Start 2P'",
     }).setOrigin(0.5);
 
-    this.add.text(gameWidth / 2, gameHeight * 0.40, "Press SPACE to Start", {
+    this.add.text(gameWidth / 2, gameHeight * 0.40, "Press SPACE / (CROSS) to Start", {
       fontSize: "22px",
       fill: "#fff",
       fontFamily: "'Press Start 2P'",
@@ -83,25 +94,19 @@ export default class StartUpMenu extends Phaser.Scene {
     this.add.image(gameWidth / 2 - 100, tableY + 50, "crab1").setScale(0.8);
     this.add.image(gameWidth / 2 - 100, tableY + 75, "octopus1").setScale(0.8);
 
-    this.add.text(gameWidth / 2, gameHeight * 0.50, "Press C for CONTROLS", {
+    this.add.text(gameWidth / 2, gameHeight * 0.85, "Press C / (SQUARE) for CONTROLS", {
       fontSize: "14px",
-      fill: "#fff",
-      fontFamily: "'Press Start 2P'",
-    }).setOrigin(0.5).setY(gameHeight * 0.85);
-
-    this.add.text(gameWidth / 2, gameHeight * 0.92, "1: LEVEL 1 | 2: LEVEL 2", {
-      fontSize: "12px",
       fill: "#fff",
       fontFamily: "'Press Start 2P'",
     }).setOrigin(0.5);
 
-    this.add.text(gameWidth / 2, gameHeight * 0.70, "Press 1 for LEVEL 1", {
+    this.add.text(gameWidth / 2, gameHeight * 0.70, "Press 1 / (CROSS) for LEVEL 1", {
       fontSize: "16px",
       fill: "#fff",
       fontFamily: "'Press Start 2P'",
     }).setOrigin(0.5);
 
-    this.add.text(gameWidth / 2, gameHeight * 0.78, "Press 2 for LEVEL 2", {
+    this.add.text(gameWidth / 2, gameHeight * 0.78, "Press 2 / (TRIANGLE) for LEVEL 2", {
       fontSize: "16px",
       fill: "#fff",
       fontFamily: "'Press Start 2P'",
@@ -126,5 +131,34 @@ export default class StartUpMenu extends Phaser.Scene {
       if (!this.loadingComplete) return;
       this.scene.start("Level2");
     });
+  }
+
+  update() {
+    // Important: Poll gamepad state
+    this.inputSystem.update();
+
+    if (this.loadingComplete) {
+      // Resume audio context on first interaction (required by browsers)
+      if (this.sound.context && this.sound.context.state === 'suspended') {
+        this.sound.context.resume();
+      }
+
+      // Check for gamepad actions
+      // Only FIRE (Cross) starts the level. RESTART (Options) is reserved for menu navigation.
+      if (this.inputSystem.isJustPressed(INPUT_ACTIONS.FIRE)) { 
+        this.scene.start("Level1");
+      }
+      if (this.inputSystem.isJustPressed(INPUT_ACTIONS.PUNCH)) { // Square
+        this.scene.start("ControlsScene");
+      }
+      if (this.inputSystem.isJustPressed(INPUT_ACTIONS.KICK)) { // Triangle
+        this.scene.start("Level2");
+      }
+      if (this.inputSystem.isJustPressed(INPUT_ACTIONS.JUMP)) { // Cross
+        this.scene.start("Level1");
+      }
+    }
+
+    this.inputSystem.lateUpdate();
   }
 }

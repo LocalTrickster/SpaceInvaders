@@ -1,10 +1,13 @@
+import { INPUT_ACTIONS } from '../scenes/InputSystem.js';
+
 export default class Player extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y, texture, bulletsGroup) {
+  constructor(scene, x, y, texture, bulletsGroup, inputSystem) {
     super(scene, x, y, texture);
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
     this.scene = scene;
+    this.inputSystem = inputSystem;
     this.bulletsGroup = bulletsGroup;
     this.setCollideWorldBounds(true);
     if (this.body) {
@@ -18,25 +21,20 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.shootDelay = 600; // Slower fire rate to prevent spamming
   }
 
-  setupControls(cursors, shootKey) {
-    this.cursors = cursors;
-    this.shootKey = shootKey;
-  }
-
   update() {
     if (!this.active) {
       return;
     }
 
-    if (this.cursors.left.isDown) {
+    if (this.inputSystem.isDown(INPUT_ACTIONS.LEFT)) {
       this.setVelocityX(-this.speed);
-    } else if (this.cursors.right.isDown) {
+    } else if (this.inputSystem.isDown(INPUT_ACTIONS.RIGHT)) {
       this.setVelocityX(this.speed);
     } else {
       this.setVelocityX(0);
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.shootKey)) {
+    if (this.inputSystem.isJustPressed(INPUT_ACTIONS.FIRE)) {
       this.shoot();
     }
   }
