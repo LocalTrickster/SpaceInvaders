@@ -1,6 +1,6 @@
 export default class WinCondition extends Phaser.Scene {
     constructor() {
-        super("WinScene");
+        super("WinCondition");
     }
 
     init(data) {
@@ -11,50 +11,49 @@ export default class WinCondition extends Phaser.Scene {
     }
     
     preload() {
-        this.load.image("fondomenu", "./public/assets/fondomenu.jpg");
     }
 
     create() {
         const gameWidth = this.cameras.main.width;
         const gameHeight = this.cameras.main.height;
 
-        this.add.image(gameWidth / 2, gameHeight / 2, "fondomenu").setScale(2);
+        this.cameras.main.setBackgroundColor("#000000");
         
         this.add.text(gameWidth / 2, gameHeight * 0.2, "* * * VICTORY * * *", {
             fontSize: "36px",
-            fill: "#0f0",
-            fontFamily: "Arial",
+            fill: "#fff",
+            fontFamily: "'Press Start 2P'",
             fontStyle: "bold",
         }).setOrigin(0.5);
 
         this.add.text(gameWidth / 2, gameHeight * 0.35, this.message, {
             fontSize: "28px",
-            fill: "#0f0",
-            fontFamily: "Arial",
+            fill: "#fff",
+            fontFamily: "'Press Start 2P'",
         }).setOrigin(0.5);
 
         this.add.text(gameWidth / 2, gameHeight * 0.5, `SCORE: ${this.score}`, {
             fontSize: "24px",
-            fill: "#0f0",
-            fontFamily: "Arial",
+            fill: "#fff",
+            fontFamily: "'Press Start 2P'",
         }).setOrigin(0.5);
 
         this.add.text(
             gameWidth / 2,
             gameHeight * 0.6,
-            `ENEMIES DESTROYED: ${this.collectedShapes.diamond}`,
+            `ENEMIES: ${this.collectedShapes.diamond}`,
             {
                 fontSize: "20px",
                 fill: "#fff",
-                fontFamily: "Arial",
+                fontFamily: "'Press Start 2P'",
             }
         ).setOrigin(0.5);
 
         
         this.add.text(gameWidth / 2, gameHeight * 0.75, "Press R to return to menu", {
             fontSize: "22px",
-            fill: "#0f0",
-            fontFamily: "Arial",
+            fill: "#fff",
+            fontFamily: "'Press Start 2P'",
         }).setOrigin(0.5);
 
         

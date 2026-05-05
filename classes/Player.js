@@ -15,7 +15,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.setDrag(0);
     this.speed = 350;
     this.canShoot = true;
-    this.shootDelay = 200;
+    this.shootDelay = 600; // Slower fire rate to prevent spamming
   }
 
   setupControls(cursors, shootKey) {
@@ -48,8 +48,11 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     const bullet = this.bulletsGroup.create(this.x, this.y - 20, "projectile");
     bullet.setScale(1);
-    bullet.setVelocityY(-400);
+    bullet.setVelocityY(-300);
     bullet.setCollideWorldBounds(false);
+
+    // Play firing sound
+    this.scene.sound.play("shoot");
 
     this.canShoot = false;
     this.scene.time.addEvent({
