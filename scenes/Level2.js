@@ -1,4 +1,5 @@
 import Player from "../classes/Player.js";
+import InputSystem, { INPUT_ACTIONS } from './InputSystem.js';
 
 export default class Level2 extends Phaser.Scene {
   constructor() {
@@ -33,11 +34,19 @@ export default class Level2 extends Phaser.Scene {
     this.cameras.main.setBackgroundColor("#000000");
     this.physics.world.setBounds(0, 0, gameWidth, gameHeight);
 
+    // Initialize InputSystem
+    this.inputSystem = new InputSystem(this, {
+      [INPUT_ACTIONS.LEFT]:  'LEFT',
+      [INPUT_ACTIONS.RIGHT]: 'RIGHT',
+      [INPUT_ACTIONS.FIRE]:  'SPACE',
+      [INPUT_ACTIONS.RESTART]: 'R'
+    });
+
     // Bullets group
     this.playerBullets = this.physics.add.group();
 
     // Player ship
-    this.player = new Player(this, gameWidth / 2, gameHeight - 50, "player", this.playerBullets);
+    this.player = new Player(this, gameWidth / 2, gameHeight - 50, "player", this.playerBullets, this.inputSystem);
     this.player.setScale(1.5);
     this.player.setDepth(10);
     this.playerAlive = true;
@@ -50,13 +59,6 @@ export default class Level2 extends Phaser.Scene {
 
     // Shields group (covers) - fewer shields in Level2
     this.shields = this.physics.add.staticGroup();
-
-    // Controls
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.spaceKey = this.input.keyboard.addKey(
-      Phaser.Input.Keyboard.KeyCodes.SPACE
-    );
-    this.player.setupControls(this.cursors, this.spaceKey);
 
     // Create Animations for enemies
     if (!this.anims.exists("octopus_anim")) {
@@ -437,6 +439,8 @@ export default class Level2 extends Phaser.Scene {
   }
 
   update() {
+    this.inputSystem.update();
+
     if (!this.playerAlive || !this.player || !this.player.active) return;
 
     // Define filter zones

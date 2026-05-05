@@ -1,3 +1,5 @@
+import InputSystem, { INPUT_ACTIONS } from './InputSystem.js';
+
 export default class LosingCondition extends Phaser.Scene {
     constructor() {
         super("LosingCondition");
@@ -53,9 +55,17 @@ export default class LosingCondition extends Phaser.Scene {
             fontFamily: "'Press Start 2P'",
         }).setOrigin(0.5);
 
-      
-        this.input.keyboard.on("keydown-R", () => {
-            this.scene.start("StartUpMenu");
+        this.inputSystem = new InputSystem(this, {
+            [INPUT_ACTIONS.RESTART]: 'R',
+            [INPUT_ACTIONS.FIRE]: 'SPACE'
         });
+    }
+
+    update() {
+        this.inputSystem.update();
+        if (this.inputSystem.isJustPressed(INPUT_ACTIONS.RESTART) || this.inputSystem.isJustPressed(INPUT_ACTIONS.FIRE)) {
+            this.scene.start("StartUpMenu");
+        }
+        this.inputSystem.lateUpdate();
     }
 }

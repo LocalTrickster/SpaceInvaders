@@ -1,3 +1,5 @@
+import InputSystem, { INPUT_ACTIONS } from './InputSystem.js';
+
 export default class ControlsScene extends Phaser.Scene {
     constructor() {
         super("ControlsScene");
@@ -13,7 +15,7 @@ export default class ControlsScene extends Phaser.Scene {
             fontFamily: "'Press Start 2P'",
         }).setOrigin(0.5);
 
-        this.add.text(gameWidth / 2, gameHeight * 0.4, "LEFT / RIGHT ARROWS", {
+        this.add.text(gameWidth / 2, gameHeight * 0.4, "ARROWS / D-PAD / L-STICK", {
             fontSize: "20px",
             fill: "#fff",
             fontFamily: "'Press Start 2P'",
@@ -25,7 +27,7 @@ export default class ControlsScene extends Phaser.Scene {
             fontFamily: "'Press Start 2P'",
         }).setOrigin(0.5);
 
-        this.add.text(gameWidth / 2, gameHeight * 0.6, "SPACE BAR", {
+        this.add.text(gameWidth / 2, gameHeight * 0.6, "SPACE BAR / CROSS BUTTON", {
             fontSize: "20px",
             fill: "#fff",
             fontFamily: "'Press Start 2P'",
@@ -37,14 +39,24 @@ export default class ControlsScene extends Phaser.Scene {
             fontFamily: "'Press Start 2P'",
         }).setOrigin(0.5);
 
-        this.add.text(gameWidth / 2, gameHeight * 0.85, "Press R to Return", {
+        this.add.text(gameWidth / 2, gameHeight * 0.85, "Press R / OPTIONS to Return", {
             fontSize: "18px",
             fill: "#fff",
             fontFamily: "'Press Start 2P'",
         }).setOrigin(0.5);
 
-        this.input.keyboard.on("keydown-R", () => {
-            this.scene.start("StartUpMenu");
+        this.inputSystem = new InputSystem(this, {
+            [INPUT_ACTIONS.RESTART]: 'R',
+            [INPUT_ACTIONS.FIRE]: 'SPACE'
         });
+    }
+
+    update() {
+        this.inputSystem.update();
+        // Return to menu on RESTART (Options) or FIRE (Cross)
+        if (this.inputSystem.isJustPressed(INPUT_ACTIONS.RESTART) || this.inputSystem.isJustPressed(INPUT_ACTIONS.FIRE)) {
+            this.scene.start("StartUpMenu");
+        }
+        this.inputSystem.lateUpdate();
     }
 }
