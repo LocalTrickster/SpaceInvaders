@@ -75,7 +75,7 @@ export default class StartUpMenu extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.add.text(gameWidth / 2, gameHeight * 0.40, "Press SPACE / (CROSS) to Start", {
-      fontSize: "22px",
+      fontSize: "18px",
       fill: "#fff",
       fontFamily: "'Press Start 2P'",
     }).setOrigin(0.5);

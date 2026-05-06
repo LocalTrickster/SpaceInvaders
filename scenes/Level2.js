@@ -11,8 +11,10 @@ export default class Level2 extends Phaser.Scene {
     this.enemiesDestroyed = 0;
     this.moveSoundIndex = 0;
     this.totalEnemiesToWin = 36; // Total enemies to destroy for this level
+    this.enemySpeed = 15;
     this.currentEnemySpeed = 15;
     this.enemyFireRate = 1000;
+    this.playerLives = 2;
     try {
       const saved = localStorage.getItem("highScore");
       this.highScore = parseInt(saved) || 0;
@@ -215,7 +217,7 @@ export default class Level2 extends Phaser.Scene {
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
         const x = (gameWidth * 0.15) + (horizontalSpacing * col);
-        const y = 220 + row * 40; // Lowered further for Level 2
+        const y = 160 + row * 40; // Adjusted to prevent instant game over on smaller screens
         
         let enemySpriteKey = "octopus";
         if (row < 2) enemySpriteKey = "squid";
@@ -439,6 +441,12 @@ export default class Level2 extends Phaser.Scene {
 
   update() {
     this.inputSystem.update();
+
+    // Allow returning to menu
+    if (this.inputSystem.isJustPressed(INPUT_ACTIONS.RESTART)) {
+      this.scene.start("StartUpMenu");
+    }
+
     const greenZoneYStart = this.gameHeight * 0.8; 
     const redZoneYEnd = this.gameHeight * 0.15;
 
